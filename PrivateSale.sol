@@ -68,15 +68,33 @@ contract privateSale is Ownable, ReentrancyGuard{
         return depositToAddress[_addr];
     }
 
+    // Get remaining deposit amount
+    function getRemainingDeposit(address _addr) public view returns(int){
+        if(depRestriction == true){
+            uint[] memory deposits = getDepositIndexByAddress(_addr);
+            uint total;
+            for(uint i = 0; i < deposits.length; i++){
+                total += getDepositInfoByIndex(deposits[i]).depositAmount;
+            }
+            if(total >= maxDeposit){
+                return 0;
+            }
+            return int(maxDeposit - total);
+        }
+        return -1;
+    }
+
 
     /*|| === PUBLIC FUNCTIONS === ||*/
 
     function depositETH() nonReentrant payable public{
-        if(depRestriction == true){
-            require(msg.value >= minDeposit && msg.value <= maxDeposit, "Deposit amount not within boundaries");
-        }
+
         if(isWhitelist == true){
             require(getIsWhitelisted(msg.sender) == true, "Sender is not whitelisted");
+        }
+        if(depRestriction == true){
+            require(msg.value >= minDeposit && msg.value <= maxDeposit, "Deposit amount not within boundaries");
+            require(getRemainingDeposit(msg.sender) > 0, "Address has reached max deposit amount");
         }
         depositToIndex[index].senderAddress = msg.sender;
         depositToIndex[index].depositAmount = msg.value;
