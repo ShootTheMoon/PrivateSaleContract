@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.0;
+pragma solidity ^0.8;
 
 import "./Ownable.sol";
 import "./ReentrancyGuard.sol";
@@ -114,13 +114,13 @@ contract privateSale is Ownable, ReentrancyGuard{
 
     // Set the min deposit
     function setMinDeposit(uint _minDeposit) onlyOwner public{
-        require(_minDeposit < maxDeposit, "Min deposit must be less than max deposit");
+        require(_minDeposit <= maxDeposit, "Min deposit must be less than max deposit");
         minDeposit = _minDeposit;
     }
 
     // Set the max deposit 
     function setMaxDeposit(uint _maxDeposit) onlyOwner public{
-        require(_maxDeposit > minDeposit, "Max deposit must be greater than min deposit");
+        require(_maxDeposit >= minDeposit, "Max deposit must be greater than min deposit");
         maxDeposit = _maxDeposit;
     }
 
