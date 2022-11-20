@@ -94,7 +94,7 @@ contract privateSale is Ownable, ReentrancyGuard{
         }
         if(depRestriction == true){
             require(msg.value >= minDeposit && msg.value <= maxDeposit, "Deposit amount not within boundaries");
-            require(getRemainingDeposit(msg.sender) > 0, "Address has reached max deposit amount");
+            require(getRemainingDeposit(msg.sender) - int(msg.value) >= 0, "Address has reached max deposit amount");
         }
         depositToIndex[index].senderAddress = msg.sender;
         depositToIndex[index].depositAmount = msg.value;
