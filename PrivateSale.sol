@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8;
+pragma solidity ^0.8.0;
 
 import "./Ownable.sol";
 import "./ReentrancyGuard.sol";
 
 contract privateSale is Ownable, ReentrancyGuard{
+
     constructor(bool _isWhitelist, bool _depRestriction){
         isWhitelist = _isWhitelist;
         depRestriction = _depRestriction;
@@ -18,16 +19,26 @@ contract privateSale is Ownable, ReentrancyGuard{
         bool whitelist; 
     }
 
+
+    /*|| === GLOBAL VARIABLES === ||*/
+
     uint public index;
-    uint public minDeposit = 1; 
-    uint public maxDeposit = 100;
+    uint public minDeposit;
+    uint public maxDeposit;
     bool public isWhitelist; // Is whitelist in effect
     bool public depRestriction; // Is min/max deposit amount in effect
     address[] private whitelistAddr; // Array of whitelisted addresses
 
+
+    /*|| === MAPPINGS === ||*/
+
     mapping (address => uint[]) private depositToAddress;
     mapping (uint => depositItem) private depositToIndex; 
 
+
+    /*|| === EVENT EMMITER === ||*/
+
+    event LogDeposit(address setFromAddress, uint256 amountDeposited);
 
 
     /*|| === GETTER FUNCTIONS === ||*/
@@ -74,6 +85,8 @@ contract privateSale is Ownable, ReentrancyGuard{
         depositToAddress[msg.sender].push(index);
 
         index++;
+
+        emit LogDeposit(msg.sender, msg.value);
     }
 
 
