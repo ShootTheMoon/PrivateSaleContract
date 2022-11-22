@@ -1,16 +1,19 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8;
+pragma solidity ^0.8.0;
 
 import "./Ownable.sol";
 import "./ReentrancyGuard.sol";
 
 contract privateSale is Ownable, ReentrancyGuard{
 
-    constructor(bool _isWhitelist, bool _depRestriction){
+    constructor(uint _hardCap, uint _minDeposit, uint _maxDeposit, bool _isHardCap, bool _isWhitelist, bool _depRestriction){
+        hardCap= _hardCap;
+        minDeposit = _minDeposit;
+        maxDeposit = _maxDeposit;
+        isHardCap = _isHardCap;
         isWhitelist = _isWhitelist;
         depRestriction = _depRestriction;
-        index = 0;
     }
 
     struct depositItem {
@@ -23,8 +26,11 @@ contract privateSale is Ownable, ReentrancyGuard{
     /*|| === GLOBAL VARIABLES === ||*/
 
     uint public index;
+    uint public hardCap;
     uint public minDeposit;
     uint public maxDeposit;
+    uint public totalDeposits;
+    bool public isHardCap; // Is hardcap enabled
     bool public isWhitelist; // Is whitelist in effect
     bool public depRestriction; // Is min/max deposit amount in effect
     address[] private whitelistAddr; // Array of whitelisted addresses
@@ -89,19 +95,22 @@ contract privateSale is Ownable, ReentrancyGuard{
 
     function depositETH() nonReentrant payable public{
 
-        if(isWhitelist == true){
+        if(isWhitelist){ // If whitelist mode is on
             require(getIsWhitelisted(msg.sender) == true, "Sender is not whitelisted");
         }
-        if(depRestriction == true){
-            require(msg.value >= minDeposit && msg.value <= maxDeposit, "Deposit amount not within boundaries");
-            require(getRemainingDeposit(msg.sender) - int(msg.value) >= 0, "Address has reached max deposit amount");
+        if(depRestriction){ // If min/max deposit restrictions are on
+            require(msg.value >= minDeposit && msg.value <= maxDeposit, "Deposit amount not within min/max boundaries");
+            require(getRemainingDeposit(msg.sender) - int(msg.value) >= 0, "Current deposit exceeds max deposit amount per address");
+        }
+        if(isHardCap){ // If hardcap mode is enabled
+            require(totalDeposits + msg.value <= hardCap, "Deposit amount exceeds hardcap");
         }
         depositToIndex[index].senderAddress = msg.sender;
         depositToIndex[index].depositAmount = msg.value;
         depositToIndex[index].whitelist = isWhitelist;
 
         depositToAddress[msg.sender].push(index);
-
+        totalDeposits += msg.value;
         index++;
 
         emit LogDeposit(msg.sender, msg.value);
@@ -130,6 +139,11 @@ contract privateSale is Ownable, ReentrancyGuard{
         }
     }
 
+    // Set hardcap value
+    function setHardCap(uint _hardCap) onlyOwner public{
+        hardCap = _hardCap;
+    }
+
     // Set the min deposit
     function setMinDeposit(uint _minDeposit) onlyOwner public{
         require(_minDeposit <= maxDeposit, "Min deposit must be less than max deposit");
@@ -142,7 +156,12 @@ contract privateSale is Ownable, ReentrancyGuard{
         maxDeposit = _maxDeposit;
     }
 
-    // Set if whitelist mode
+    // Set if hardcap enabled
+    function setHardcapMode(bool _isHardCap) onlyOwner public{
+        isHardCap = _isHardCap;
+    }
+
+    // Set if whitelist mode enabled
     function setWhitelist(bool _isWhitelist) onlyOwner public{
         isWhitelist = _isWhitelist;
     }
@@ -152,7 +171,7 @@ contract privateSale is Ownable, ReentrancyGuard{
         depRestriction = _depRestriction;
     }
 
-    // Claim bnb in contract
+    // Claim ETH in contract
     function claimETH() external onlyOwner{
         address payable to = payable(msg.sender);
         to.transfer(address(this).balance);
